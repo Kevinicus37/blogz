@@ -20,13 +20,13 @@ class BlogHandler(webapp2.RequestHandler):
             The user parameter will be a User object.
         """
         # TODO - filter the query so that only posts by the given user
-
         query = Post.all().filter('author', user.key()).order('-created')
         return query.fetch(limit=limit, offset=offset)
 
     def get_user_by_name(self, username):
         """ Get a user object from the db, based on their username """
-        user = db.GqlQuery("SELECT * FROM User WHERE username = '%s'" % username)
+#        user = db.GqlQuery("SELECT * FROM User WHERE username = '%s'" % username)
+        user = User.all().filter('username', username)
         if user:
             return user.get()
 
@@ -76,7 +76,6 @@ class BlogIndexHandler(BlogHandler):
     page_size = 5
 
     def get(self, username=""):
-        """ """
 
         # If request is for a specific page, set page number and offset accordingly
         page = self.request.get("page")
@@ -104,7 +103,6 @@ class BlogIndexHandler(BlogHandler):
             next_page = page + 1
         else:
             next_page = None
-
         # render the page
         t = jinja_env.get_template("blog.html")
         response = t.render(
@@ -167,7 +165,7 @@ class ViewPostHandler(BlogHandler):
 class SignupHandler(BlogHandler):
 
     def validate_username(self, username):
-        USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+        USER_RE = re.compile(r"^[a-zA-Z][0-9_-]{3,20}$")
         if USER_RE.match(username):
             return username
         else:
@@ -221,11 +219,19 @@ class SignupHandler(BlogHandler):
 
         errors = {}
         existing_user = self.get_user_by_name(username)
+        if username.isdigit():
+            existing_post_id=Post.get_by_id(int(username))
+        else:
+            existing_post_id = None
+
         has_error = False
 
         if existing_user:
             errors['username_error'] = "A user with that username already exists"
             has_error = True
+        elif existing_post_id:
+            errors['username_error'] = "Username matches Post ID.  Try using letters in your username."
+            has_error=True
         elif (username and password and verify and (email is not None) ):
 
             # create new user object and store it in the database
@@ -252,7 +258,7 @@ class SignupHandler(BlogHandler):
 
         if has_error:
             t = jinja_env.get_template("signup.html")
-            response = t.render(username=username, email=email, errors=errors)
+            response = t.render(username=submitted_username, email=email, errors=errors)
             self.response.out.write(response)
         else:
             self.redirect('/blog/newpost')
