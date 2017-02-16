@@ -91,7 +91,13 @@ class BlogIndexHandler(BlogHandler):
         # Fetch posts for all users, or a specific user, depending on request parameters
         if username:
             user = self.get_user_by_name(username)
-            posts = self.get_posts_by_user(user, self.page_size, offset)
+            if not user:
+                error = "Username %s not found." % username
+                t = jinja_env.get_template("404.html")
+                response = t.render(error=error)
+                return self.response.out.write(response)
+            else:
+                posts = self.get_posts_by_user(user, self.page_size, offset)
         else:
             posts = self.get_posts(self.page_size, offset)
 
@@ -232,7 +238,7 @@ class SignupHandler(BlogHandler):
             errors['username_error'] = "A user with that username already exists"
             has_error = True
         elif existing_post_id:
-            errors['username_error'] = "Username matches Post ID.  Try using letters in your username."
+            errors['username_error'] = "Invalid username - Matches existing post id."
             has_error=True
         elif (username and password and verify and (email is not None) ):
 
