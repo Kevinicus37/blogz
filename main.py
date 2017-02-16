@@ -80,8 +80,10 @@ class BlogIndexHandler(BlogHandler):
         # If request is for a specific page, set page number and offset accordingly
         page = self.request.get("page")
         offset = 0
-        page = page and int(page)
-        if page:
+
+        # Sets offset if mult
+        if page.isdigit() and int(page) > 0:
+            page = int(page)
             offset = (int(page) - 1) * self.page_size
         else:
             page = 1
